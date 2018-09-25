@@ -14,8 +14,6 @@
 #include <string>
 #include <vector>
 
-#include <boost/variant.hpp>
-
 // Try to use std::string_view, N4480's version, or fall back to Boost's.
 
 #ifdef __has_include
@@ -46,6 +44,22 @@
 #  endif
 #endif
 
+// Try to use std::variant or fall back to Boost's.
+
+#ifdef __has_include
+#  if __has_include(<variant>) && (__cplusplus >= 201703L || \
+      (defined(_MSVC_LANG) && _MSVC_LANG >= 201703L))
+#    include <variant>
+#    define BENCODE_VARIANT_NS std
+#  endif
+#endif
+
+#ifndef BENCODE_VARIANT_NS
+#  include <boost/variant.hpp>
+#  define BENCODE_VARIANT_NS boost
+#  define BENCODE_VARIANT_BOOST
+#endif
+
 namespace bencode {
 
   using integer = long long;
@@ -53,19 +67,41 @@ namespace bencode {
   using string = std::string;
   using string_view = BENCODE_STRING_VIEW;
 
-  using data = boost::make_recursive_variant<
+  struct data : BENCODE_VARIANT_NS::variant<
     integer,
     string,
-    std::vector<boost::recursive_variant_>,
-    std::map<string, boost::recursive_variant_>
-  >::type;
+    std::vector<data>,
+    std::map<string, data>
+  > {
+    using base_type = BENCODE_VARIANT_NS::variant<
+      integer,
+      string,
+      std::vector<data>,
+      std::map<string, data>
+    >;
+    using base_type::base_type;
 
-  using data_view = boost::make_recursive_variant<
+    base_type & base() { return *this; }
+    const base_type & base() const { return *this; }
+  };
+
+  struct data_view : BENCODE_VARIANT_NS::variant<
     integer_view,
     string_view,
-    std::vector<boost::recursive_variant_>,
-    std::map<string_view, boost::recursive_variant_>
-  >::type;
+    std::vector<data_view>,
+    std::map<string_view, data_view>
+  > {
+    using base_type = BENCODE_VARIANT_NS::variant<
+      integer_view,
+      string_view,
+      std::vector<data_view>,
+      std::map<string_view, data_view>
+    >;
+    using base_type::base_type;
+
+    base_type & base() { return *this; }
+    const base_type & base() const { return *this; }
+  };
 
   using list = std::vector<data>;
   using dict = std::map<string, data>;
@@ -347,7 +383,11 @@ namespace bencode {
   }
 
   namespace detail {
-    class encode_visitor : public boost::static_visitor<> {
+    class encode_visitor
+#ifdef BENCODE_VARIANT_BOOST
+    : public boost::static_visitor<>
+#endif
+    {
     public:
       inline encode_visitor(std::ostream &os) : os(os) {}
 
@@ -367,8 +407,12 @@ namespace bencode {
   typename std::enable_if<
     std::is_same<T, data>::value || std::is_same<T, data_view>::value
   >::type {
+#ifdef BENCODE_VARIANT_BOOST
     boost::apply_visitor(detail::encode_visitor(os), value);
-  }
+#else
+    std::visit(detail::encode_visitor(os), value.base());
+#endif
+    }
 
   namespace detail {
     template<typename T>

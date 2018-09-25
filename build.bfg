@@ -14,8 +14,9 @@ includes = header_directory('include', include='*.hpp')
 
 install(includes)
 
-boost = boost_package(version='>=1.23')
-libmettle = package('mettle')
+packages = [package('mettle')]
+if argv.std in ['c++11', 'c++14']:
+    packages.append(boost_package(version='>=1.23'))
 mettle = test_driver(['mettle', '--output=verbose'])
 
 for src in find_files('test', '*.cpp'):
@@ -23,7 +24,7 @@ for src in find_files('test', '*.cpp'):
         splitext(src)[0],
         files=src,
         includes=includes,
-        packages=[boost, libmettle]
+        packages=packages
     ), driver=mettle)
 
 extra_dist(files=['README.md', 'LICENSE'])
