@@ -152,7 +152,11 @@ before_install:
       set -e
       virtualenv env && source env/bin/activate
     fi
-  - ${PIP} install bfg9000
+
+  - git clone https://github.com/jimporter/bfg9000.git
+  - pushd bfg9000
+  - ${PIP} install .
+  - popd
 install:
   # Build and install the lastest master revision of mettle.
   - git clone https://github.com/jimporter/mettle.git

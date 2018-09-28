@@ -33,7 +33,11 @@ install:
   - cinst ninja
   - call "%VS%" x86
   - set PATH=%PYTHON_PATH%;%PYTHON_PATH%\Scripts;%PATH%
-  - pip install bfg9000
+
+  - git clone https://github.com/jimporter/bfg9000.git
+  - cd bfg9000
+  - pip install .
+  - cd ..
 
   # Install the latest master revision of mettle.
   - git clone https://github.com/jimporter/mettle.git
