@@ -1,5 +1,5 @@
-#ifndef INC_BENCODE_HPP
-#define INC_BENCODE_HPP
+#ifndef BENCODE_LIBRARY_H
+#define BENCODE_LIBRARY_H
 
 #include <algorithm>
 #include <cassert>
